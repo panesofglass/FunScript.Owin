@@ -6,6 +6,7 @@ open FunScript.Owin
 open FunScript
 open FunScript.TypeScript
 
+open System.Reflection
 
 open Microsoft.Owin.Hosting
 
@@ -14,11 +15,13 @@ module Program =
 
     type ts = Api<"../Typings/lib.d.ts">
 
-    let jsmain() = ts.alert("Hello world") |> ignore
+    [<Export("script.js")>]
+    let jsmain() = 
+        ts.alert("Hello world")
 
     type Startup() =
         member public this.Configuration(app:IAppBuilder) =
-            app.mapScript("/script.js", <@@ ts.alert("Hello world") @@>, Interop.Components.all) |> ignore
+            app.mapScript("scripts", Assembly.GetExecutingAssembly(), Interop.Components.all) |> ignore
 
 
             
