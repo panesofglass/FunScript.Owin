@@ -8,25 +8,36 @@ open System.Reflection
 open System.Threading.Tasks
 
 open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Reflection
 
+open System.IO
+open System.Text
+
+[<AutoOpen>]
 module OwinExtensions = 
 
-    type AppFunc = Func<IDictionary<string, Object>, Task>
-
-    let tryGet<'t> (key:string) (env:IDictionary<string, Object>) = 
+    let private tryGet<'t> (key:string) (env:IDictionary<string, obj>) = 
         let res, v = env.TryGetValue key
         if res then Some(v :?> 't) else None
 
-    let emptyTask() = 
+    let private emptyTask() = 
         let tcs = new TaskCompletionSource<Object>()
         tcs.SetResult Unchecked.defaultof<Object>
         tcs.Task :> Task
 
-    let response (resp:string) (env:IDictionary<string, Object>) =
-        env.[OwinConstants.ResponseBody] <- resp
-        env
+    let private response (resp:string) (env:IDictionary<string, obj>) =
 
-    let writeHeader (key:string) (value:string) (env:IDictionary<string, Object>) =
+        let response = env |> tryGet<Stream> OwinConstants.ResponseBody
+
+        match response with
+        | Some(r) ->
+            let bytes = Encoding.UTF8.GetBytes(resp) 
+            r.Write(bytes, 0, bytes.Length)
+            env
+        | None -> env
+
+
+    let private writeHeader (key:string) (value:string) (env:IDictionary<string, obj>) =
         let headers = tryGet<IDictionary<string, string[]>> OwinConstants.ResponseHeaders env
         match headers with
         | Some(h) -> 
@@ -35,9 +46,9 @@ module OwinExtensions =
         | None -> env
 
     
-    type FunScriptServer(app:AppFunc, endPoint:string, source:string) = 
+    type FunScriptServer(nxt:Func<IDictionary<string, obj>, Task>, endPoint:string, source:string) = 
         
-        let Invoke(env:IDictionary<string, Object>):Task = 
+        member public this.Invoke(env:IDictionary<string, obj>):Task = 
             let path = tryGet<string> OwinConstants.RequestPath env
 
             match path with
@@ -50,19 +61,20 @@ module OwinExtensions =
 
                     emptyTask()
 
-                else app.Invoke(env)                
-            | None -> app.Invoke(env)
+                else nxt.Invoke(env)                
+            | None -> nxt.Invoke(env)
             
-            
-
-        
 
 
     type IAppBuilder with
         
-        member this.mapScript (endPoint:string, mi:MethodInfo, ?components) = 
-            let expr = Expr.Call(mi, [])
+        member this.mapScript (endPoint:string, expression, ?components) = 
             let components = defaultArg components []
-            let source = FunScript.Compiler.Compiler.Compile(expr, components=components)
+            let source = FunScript.Compiler.Compiler.Compile(expression, components=components)
             this.Use(typeof<FunScriptServer>, endPoint, source)
+
+
+
+
+
         

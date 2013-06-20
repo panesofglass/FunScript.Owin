@@ -5,7 +5,7 @@ open System
 [<RequireQualifiedAccess>]
 module PrefixMatcher =
 
-    let ensureStartsWithSlash (path:string) = if path.Length = 0 or path.[0] = '/' then path else "/" + path
+    let ensureStartsWithSlash (path:string) = if path.Length = 0 || path.[0] = '/' then path else "/" + path
 
     let isMatch path pathBase =
         let pathBase = ensureStartsWithSlash pathBase

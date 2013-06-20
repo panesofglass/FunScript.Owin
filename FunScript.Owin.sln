@@ -3,6 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunScript.Owin", "FunScript.Owin\FunScript.Owin.fsproj", "{461DB01F-DCF0-400E-AEC9-870F28BC1B01}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunScript.Owin.Test", "FunScript.Owin.Test\FunScript.Owin.Test.fsproj", "{8A8232EB-8529-43A2-829F-E677ABD7C097}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{2BF1B906-E8EC-4F96-8C86-498F02EE807B}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +22,10 @@ Global
 		{461DB01F-DCF0-400E-AEC9-870F28BC1B01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{461DB01F-DCF0-400E-AEC9-870F28BC1B01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{461DB01F-DCF0-400E-AEC9-870F28BC1B01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A8232EB-8529-43A2-829F-E677ABD7C097}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A8232EB-8529-43A2-829F-E677ABD7C097}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A8232EB-8529-43A2-829F-E677ABD7C097}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A8232EB-8529-43A2-829F-E677ABD7C097}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
