@@ -43,6 +43,7 @@ module Program =
             let loc = asm.Location
             let staticPath = Path.Combine(loc, "web")
 
+            //app.UseFunScript("scripts", asm) |> ignore
             app.UseFunScript("scripts", asm, Interop.Components.all) |> ignore
             app.UseNancy(new ApplicationBootstrapper()) |> ignore
 
@@ -52,7 +53,7 @@ module Program =
     [<EntryPoint>]
     let main argv = 
         //end point
-        let url = "http://camperduin:8080"
+        let url = "http://localhost:8080"
         //web app
         use a = WebApplication.Start<Startup>(url)
 

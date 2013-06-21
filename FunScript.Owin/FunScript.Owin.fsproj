@@ -68,10 +68,8 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PrefixMatcher.fs" />
     <Compile Include="OwinConstants.fs" />
     <Compile Include="OwinExtensions.fs" />
-    <None Include="Script.fsx" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>

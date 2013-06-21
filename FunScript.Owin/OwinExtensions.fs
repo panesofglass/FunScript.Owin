@@ -13,6 +13,9 @@ open Microsoft.FSharp.Reflection
 open System.IO
 open System.Text
 
+open FunScript
+open FunScript.Compiler
+
 [<AutoOpen>]
 module OwinExtensions = 
 
@@ -20,90 +23,104 @@ module OwinExtensions =
         inherit Attribute()
         member this.ScriptName = scriptName
 
-    let private tryGet<'t> (key:string) (env:IDictionary<string, obj>) = 
-        let res, v = env.TryGetValue key
-        if res then Some(v :?> 't) else None
-
-    let private emptyTask() = 
-        let tcs = new TaskCompletionSource<Object>()
-        tcs.SetResult Unchecked.defaultof<Object>
-        tcs.Task :> Task
-
-    let private response (resp:string) (env:IDictionary<string, obj>) =
-
-        let response = env |> tryGet<Stream> OwinConstants.ResponseBody
-
-        match response with
-        | Some(r) ->
-            let bytes = Encoding.UTF8.GetBytes(resp) 
-            r.Write(bytes, 0, bytes.Length)
-            env
-        | None -> env
-
-
-    let private writeHeader (key:string) (value:string) (env:IDictionary<string, obj>) =
-        let headers = tryGet<IDictionary<string, string[]>> OwinConstants.ResponseHeaders env
-        match headers with
-        | Some(h) -> 
-            h.[key] <- [|value|]
-            env
-        | None -> env
-
     
-    let inline isNull< ^a when ^a : not struct> (x:^a) =
-        obj.ReferenceEquals (x, Unchecked.defaultof<_>)
+    module private Task = 
+        let awaitTask (t: Task) = t |> Async.AwaitIAsyncResult |> Async.Ignore
+        let doAsyncTask  (f : unit->'a) = async { return! Task<'a>.Factory.StartNew( new Func<'a>(f) ) |> Async.AwaitTask }
 
-    type FunScriptServer(nxt:Func<IDictionary<string, obj>, Task>, basePath:string, asm:Assembly, components) = 
+    module private Util = 
+        let inline ensurePathStartsWithSlash (path:string) = if path.Length = 0 || path.[0] = '/' then path else "/" + path
 
+        let isPathMatch path pathBase =
+            let pathBase = ensurePathStartsWithSlash pathBase
+            let path = ensurePathStartsWithSlash path
+            let pathLength = path.Length
+            let pathBaseLength = pathBase.Length
+
+            if pathLength < pathBaseLength then false
+            else if pathLength > pathBaseLength && path.[pathBaseLength] <> '/' then false
+            else if path.StartsWith (pathBase, StringComparison.OrdinalIgnoreCase) |> not then false
+            else true
+
+        let inline isNull< ^a when ^a : not struct> (x:^a) = obj.ReferenceEquals (x, Unchecked.defaultof<_>)
+        let inline concatPath basePath scriptName = String.Format("{0}/{1}", basePath, scriptName)
+        let inline tryGet<'t> (key:string) (env:IDictionary<string, obj>) = 
+            let res, v = env.TryGetValue key
+            if res then Some(v :?> 't) else None
+
+    module private Owin = 
+        let response (resp:string) (env:IDictionary<string, obj>) = async {
+            let response = env |> Util.tryGet<Stream> OwinConstants.ResponseBody
+
+            match response with
+            | Some(r) ->
+                let bytes = Encoding.UTF8.GetBytes(resp) 
+                do! r.WriteAsync(bytes, 0, bytes.Length) |> Task.awaitTask
+            | None -> ()
+        }
+
+        let writeHeader (key:string) (value:string) (env:IDictionary<string, obj>) =
+            let headers = env |> Util.tryGet<IDictionary<string, string[]>> OwinConstants.ResponseHeaders
+            match headers with
+            | Some(h) -> 
+                h.[key] <- [|value|]
+                env
+            | None -> env
+
+
+    type private ScriptManifest(asm:Assembly, basePath) =
         let getSources() =             
             let types = asm.GetTypes()
             let flags = BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Static
             
-            seq { for typ in types do
-                for mi in typ.GetMethods(flags) do
-                    match mi.GetCustomAttribute(typedefof<ExportAttribute>, false) with
-                    | :? ExportAttribute as eattr ->
-                        let expr = Expr.Call(mi, [])
-                        let src = FunScript.Compiler.Compiler.Compile(expr, components=components)
-                        yield (src, eattr.ScriptName)
-                    | _ -> ()
+            seq {
+                for typ in types do
+                    for mi in typ.GetMethods(flags) do
+                        match mi.GetCustomAttribute(typedefof<ExportAttribute>, false) with
+                        | :? ExportAttribute as eattr -> yield (mi, eattr.ScriptName)
+                        | _ -> ()
             }
-            |> Seq.cache
 
         let sources = lazy(getSources())
 
-        member public this.Invoke(env:IDictionary<string, obj>):Task = 
-            let path = env |> tryGet<string> OwinConstants.RequestPath
+        member this.TryGet(path,components):Async<Option<string>> = async {
+            let sourcesUnwrapped = sources.Force()
+            let fpair = sourcesUnwrapped |> Seq.tryFind (fun (src, scriptName) -> Util.isPathMatch path (Util.concatPath basePath scriptName))
 
-            match path with
-            | Some(p) ->
+            match fpair with
+            | Some(mi, scriptName) -> 
+                let expr = Expr.Call(mi, [])
+                let! src = Task.doAsyncTask (fun () -> Compiler.Compile(expr, components))
+                return Some(src)
+            | None -> return None
+        } 
 
-                let sourcesUnwrapped= sources.Force()
-                let concatPath basePath scriptName = String.Format("{0}/{1}", basePath, scriptName)
-
-                let foundPair = sourcesUnwrapped
-                                |> Seq.tryFind (fun (src, scriptName) -> PrefixMatcher.isMatch p (concatPath basePath scriptName))
-
-                match foundPair with
-                | Some(src, scriptName) -> 
-                    env 
-                    |> response src
-                    |> writeHeader "Content-Type" "application/javascript"
-                    |> ignore
-
-                    emptyTask()
-
-                | None -> nxt.Invoke(env)               
-            | None -> nxt.Invoke(env)
             
+            
+    type FunscriptMiddleware(nxt:Func<IDictionary<string, obj>, Task>, basePath:string, asm:Assembly, components) = 
+        let manifest = new ScriptManifest(asm, basePath)
+        member public this.Invoke(env:IDictionary<string, obj>):Task =
+            let pathOption = env |> Util.tryGet<string> OwinConstants.RequestPath
+
+            match pathOption with
+            | Some(path) -> 
+                async {
+                    let! so = manifest.TryGet(path,components)
+                    match so with
+                    | Some(src) ->
+                        do! env |> Owin.writeHeader "Content-Type" "application/javascript"
+                                |> Owin.response src
+                    | None -> do! nxt.Invoke(env) |> Task.awaitTask
+                }
+                |> Async.StartAsTask :> Task
+            | None -> nxt.Invoke(env)       
 
 
     type IAppBuilder with
         
-        member this.UseFunScript (basePath:string, asm:Assembly, ?components) = 
-            let components = defaultArg components []
-            this.Use(typeof<FunScriptServer>, basePath, asm, components)
-
+        member this.UseFunScript(basePath:string, asm:Assembly, ?components) = 
+            let com = defaultArg components []
+            this.Use(typeof<FunscriptMiddleware>, basePath, asm, com)
 
 
 
