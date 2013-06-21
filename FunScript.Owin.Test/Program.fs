@@ -10,21 +10,20 @@ open System.Reflection
 
 open Microsoft.Owin.Hosting
 
-
-module Program = 
-
+[<FunScript.JS>]
+module JS = 
     type ts = Api<"../Typings/lib.d.ts">
 
     [<Export("script.js")>]
     let jsmain() = 
         ts.alert("Hello world")
 
+
+module Program = 
+
     type Startup() =
         member public this.Configuration(app:IAppBuilder) =
-            app.mapScript("scripts", Assembly.GetExecutingAssembly(), Interop.Components.all) |> ignore
-
-
-            
+            app.mapScript("scripts", Assembly.GetExecutingAssembly(), Interop.Components.all) |> ignore           
 
     [<EntryPoint>]
     let main argv = 

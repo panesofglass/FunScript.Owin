@@ -61,20 +61,19 @@ module OwinExtensions =
             
             seq { for typ in types do
                 for mi in typ.GetMethods(flags) do
-                    let attr = mi.GetCustomAttribute(typedefof<ExportAttribute>, false) :?> ExportAttribute
-                    if isNull(attr) |> not then
+                    match mi.GetCustomAttribute(typedefof<ExportAttribute>, false) with
+                    | :? ExportAttribute as eattr ->
                         let expr = Expr.Call(mi, [])
                         let src = FunScript.Compiler.Compiler.Compile(expr, components=components)
-                        yield (src, attr.ScriptName) 
+                        yield (src, eattr.ScriptName)
+                    | _ -> ()
             }
             |> Seq.cache
 
         let sources = lazy(getSources())
 
         member public this.Invoke(env:IDictionary<string, obj>):Task = 
-            let path = tryGet<string> OwinConstants.RequestPath env
-            
-            
+            let path = env |> tryGet<string> OwinConstants.RequestPath
 
             match path with
             | Some(p) ->
