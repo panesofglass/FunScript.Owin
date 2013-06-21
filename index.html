@@ -25,13 +25,6 @@
         <span id="logo"></span>
 
         <a href="https://github.com/Fristi/FunScript.Owin" class="button fork"><strong>View On GitHub</strong></a>
-        <div class="downloads">
-          <span>Downloads:</span>
-          <ul>
-            <li><a href="https://github.com/Fristi/FunScript.Owin/zipball/master" class="button">ZIP</a></li>
-            <li><a href="https://github.com/Fristi/FunScript.Owin/tarball/master" class="button">TAR</a></li>
-          </ul>
-        </div>
       </div><!-- end banner -->
 
     <div class="wrapper">
@@ -42,8 +35,13 @@
         <h3>
 <a name="funscript-and-owin" class="anchor" href="#funscript-and-owin"><span class="octicon octicon-link"></span></a>FunScript and OWIN</h3>
 
-<p>F# to JavaScript with type providers - <a href="http://funscript.info/">http://funscript.info/</a>
-OWIN defines a standard interface between .NET web servers and web applications. - <a href="http://owin.org/">http://owin.org/</a></p>
+<p>
+<ul>
+  <li>F# to JavaScript with type providers - <a href="http://funscript.info/">http://funscript.info/</a></li>
+  <li>OWIN defines a standard interface between .NET web servers and web applications. - <a href="http://owin.org/">http://owin.org/</a></li>
+</ul>
+
+</p>
 
 <p>FunScript middleware</p>
 
@@ -68,7 +66,7 @@ Install-Package Nancy.Owin
 
 <p>A simple example. </p>
 
-<p><code>canvas()</code> is export into "/scripts/canvas.js"</p>
+<p><code>canvas()</code> is exported into "/scripts/canvas.js"</p>
 
 <p>It uses Nancy to host the static files. (HTML). Put the html in the /web/ folder and access http://localhost:8080/web/Index.html (for example). Be sure to include "/script/canvas.js".</p>
 
