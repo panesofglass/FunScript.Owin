@@ -100,7 +100,7 @@ module OwinExtensions =
 
     type IAppBuilder with
         
-        member this.mapScript (basePath:string, asm:Assembly, ?components) = 
+        member this.UseFunScript (basePath:string, asm:Assembly, ?components) = 
             let components = defaultArg components []
             this.Use(typeof<FunScriptServer>, basePath, asm, components)
 
