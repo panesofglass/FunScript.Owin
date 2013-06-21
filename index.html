@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Funscript.Owin by Fristi</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>Funscript.Owin</h1>
+        <p>FunScript compilation middleware for OWIN</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/Fristi/FunScript.Owin" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/Fristi/FunScript.Owin/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/Fristi/FunScript.Owin/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h3>
+<a name="funscript-and-owin" class="anchor" href="#funscript-and-owin"><span class="octicon octicon-link"></span></a>FunScript and OWIN</h3>
+
+<p>F# to JavaScript with type providers - <a href="http://funscript.info/">http://funscript.info/</a>
+OWIN defines a standard interface between .NET web servers and web applications. - <a href="http://owin.org/">http://owin.org/</a></p>
+
+<p>FunScript middleware</p>
+
+<h3>
+<a name="get-started" class="anchor" href="#get-started"><span class="octicon octicon-link"></span></a>Get Started</h3>
+
+<p>New F# project (Console app). Set target framework to .NET 4.5.</p>
+
+<h2>
+<a name="nuget" class="anchor" href="#nuget"><span class="octicon octicon-link"></span></a>NuGet</h2>
+
+<p>Install the following packages (Nancy.Owin or the HttpListener Owin implementation can be replaced by whatever you like)</p>
+
+<pre><code>Install-Package FunScript.Owin
+Install-Package Microsoft.Owin.Host.HttpListener -Pre
+Install-Package Microsoft.Owin.Hosting -pre
+Install-Package Nancy.Owin
+</code></pre>
+
+<h2>
+<a name="example" class="anchor" href="#example"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p>A simple example. </p>
+
+<p><code>canvas()</code> is export into "/scripts/canvas.js"</p>
+
+<p>It uses Nancy to host the static files. (HTML). Put the html in the /web/ folder and access http://localhost:8080/web/Index.html (for example). Be sure to include "/script/canvas.js".</p>
+
+<pre><code>
+open System.Reflection
+
+open Owin
+
+open Microsoft.Owin.Hosting
+
+open FunScript
+open FunScript.TypeScript
+open FunScript.Owin
+
+open Nancy
+open Nancy.Conventions
+
+
+[&lt;FunScript.JS&gt;]
+module JS = 
+    type ts = Api&lt;"../Typings/lib.d.ts"&gt;
+
+    [&lt;Export("canvas.js")&gt;]
+    let canvas() = 
+        let canvas = unbox&lt;ts.HTMLCanvasElement&gt;(ts.document.getElementById("canvas"))
+        canvas.width &lt;- 1000.
+        canvas.height &lt;- 800.
+        let ctx = canvas.getContext("2d")
+        ctx.fillStyle &lt;- "rgb(200,0,0)"
+        ctx.fillRect (10., 10., 55., 50.);
+        ctx.fillStyle &lt;- "rgba(0, 0, 200, 0.5)"
+        ctx.fillRect (30., 30., 55., 50.)
+
+
+module App =
+    type ApplicationBootstrapper() =
+        inherit DefaultNancyBootstrapper()
+        override this.ConfigureConventions(nancyConventions:NancyConventions) =
+            nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("web", @"web"))
+            base.ConfigureConventions(nancyConventions);
+
+    type Startup() =
+        member public this.Configuration(app:IAppBuilder) =
+            app.UseFunScript("scripts", Assembly.GetExecutingAssembly(), Interop.Components.all) |&gt; ignore
+            app.UseNancy(new ApplicationBootstrapper()) |&gt; ignore
+
+    [&lt;EntryPoint&gt;]
+    let main argv = 
+        //end point
+        let url = "http://localhost:8080"
+        //web app
+        use a = WebApplication.Start&lt;Startup&gt;(url)
+
+        System.Console.WriteLine("Server running at {0}",url)      
+        System.Console.ReadLine() |&gt; ignore
+        0
+
+</code></pre>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/Fristi">Fristi</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
