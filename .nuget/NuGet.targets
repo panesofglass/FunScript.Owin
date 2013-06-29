@@ -87,7 +87,7 @@
               Condition="'$(OS)' != 'Windows_NT' And Exists('$(PackagesConfig)')" />
               
         <Exec Command="$(RestoreCommand)"
-              LogStandardErrorAsError="true"
+              LogStandardErrorAsError="false"
               Condition="'$(OS)' == 'Windows_NT' And Exists('$(PackagesConfig)')" />
     </Target>
 
@@ -96,7 +96,7 @@
               Condition=" '$(OS)' != 'Windows_NT' " />
               
         <Exec Command="$(BuildCommand)"
-              LogStandardErrorAsError="true"
+              LogStandardErrorAsError="false"
               Condition=" '$(OS)' == 'Windows_NT' " />
     </Target>
     
