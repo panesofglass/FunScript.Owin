@@ -69,6 +69,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OwinConstants.fs" />
+    <Compile Include="SourceWrapper.fs" />
     <Compile Include="OwinExtensions.fs" />
     <None Include="packages.config" />
   </ItemGroup>

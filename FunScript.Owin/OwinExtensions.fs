@@ -17,13 +17,21 @@ open FunScript
 open FunScript.Compiler
 
 [<AutoOpen>]
-module OwinExtensions = 
+module OwinExtensions =
+ 
 
-    type ExportAttribute(scriptName:string) = 
+    type ExportAttribute(scriptName:string, sourceWrapper:string) = 
         inherit Attribute()
         member this.ScriptName = scriptName
+        member this.SourceWrapper = sourceWrapper
+        new(scriptName) = ExportAttribute(scriptName, SourceWrapper.jQuery)
 
     
+    type ScriptArtifact = {
+        Source: string
+        Wrapper: string
+    }
+
     module private Task = 
         let awaitTask (t: Task) = t |> Async.AwaitIAsyncResult |> Async.Ignore
         let doAsyncTask  (f : unit->'a) = async { return! Task<'a>.Factory.StartNew( new Func<'a>(f) ) |> Async.AwaitTask }
@@ -77,21 +85,27 @@ module OwinExtensions =
                 for typ in types do
                     for mi in typ.GetMethods(flags) do
                         match mi.GetCustomAttribute(typedefof<ExportAttribute>, false) with
-                        | :? ExportAttribute as eattr -> yield (mi, eattr.ScriptName)
+                        | :? ExportAttribute as eattr -> yield (mi, eattr)
                         | _ -> ()
             }
 
         let sources = lazy(getSources())
 
-        member this.TryGet(path,components):Async<Option<string>> = async {
+        member this.TryGet(path,components):Async<Option<ScriptArtifact>> = async {
             let sourcesUnwrapped = sources.Force()
-            let fpair = sourcesUnwrapped |> Seq.tryFind (fun (src, scriptName) -> Util.isPathMatch path (Util.concatPath basePath scriptName))
+            let fpair = sourcesUnwrapped |> Seq.tryFind (fun (src, attr) -> Util.isPathMatch path (Util.concatPath basePath attr.ScriptName))
 
             match fpair with
-            | Some(mi, scriptName) -> 
+            | Some(mi, attr) -> 
                 let expr = Expr.Call(mi, [])
                 let! src = Task.doAsyncTask (fun () -> Compiler.Compile(expr, components))
-                return Some(src)
+
+                let artifact = {
+                    Source = src;
+                    Wrapper = attr.SourceWrapper
+                }
+
+                return Some(artifact)
             | None -> return None
         } 
 
@@ -105,9 +119,10 @@ module OwinExtensions =
             match pathOption with
             | Some(path) -> 
                 async {
-                    let! so = manifest.TryGet(path,components)
-                    match so with
-                    | Some(src) ->
+                    let! a = manifest.TryGet(path,components)
+                    match a with
+                    | Some(artifact) ->
+                        let src = String.Format(artifact.Wrapper, artifact.Source)
                         do! env |> Owin.writeHeader "Content-Type" "application/javascript"
                                 |> Owin.response src
                     | None -> do! nxt.Invoke(env) |> Task.awaitTask
