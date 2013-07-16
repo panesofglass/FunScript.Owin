@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+    <metadata>
+        <id>FunScript.Owin</id>
+        <version>1.0.0</version>
+        <authors>Mark</authors>
+        <projectUrl>https://github.com/Fristi/FunScript.Owin</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>FunScript compilation middleware for OWIN</description>
+        <summary />
+        <dependencies>
+            <group targetFramework=".NETFramework4.5">
+                <dependency id="Owin" version="1.0" />
+                <dependency id="FunScript" version="0.2.0.4" />
+            </group>
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="FunScript.Owin\bin\Release\FunScript.Owin.dll" target="lib\net45\FunScript.Owin.dll" />
+    </files>
+</package>
