@@ -1,6 +1,11 @@
 Releases
 ---
 
+## 1.0.2 (Jul 16 2013)
+
+- Removed unused methods
+- Automated build process
+
 ## 1.0.1 (Jun 29 2013)
 
 - Added SourceWrapper support. It's now possible to pass in a source wrapper in the Export attribute. The default is the `SourceWrapper.jQuery`
