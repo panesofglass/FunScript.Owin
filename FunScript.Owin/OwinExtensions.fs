@@ -27,7 +27,7 @@ module OwinExtensions =
         new(scriptName) = ExportAttribute(scriptName, SourceWrapper.jQuery)
 
     
-    type ScriptArtifact = {
+    type private ScriptArtifact = {
         Source: string
         Wrapper: string
     }
@@ -50,7 +50,6 @@ module OwinExtensions =
             else if path.StartsWith (pathBase, StringComparison.OrdinalIgnoreCase) |> not then false
             else true
 
-        let inline isNull< ^a when ^a : not struct> (x:^a) = obj.ReferenceEquals (x, Unchecked.defaultof<_>)
         let inline concatPath basePath scriptName = String.Format("{0}/{1}", basePath, scriptName)
         let inline tryGet<'t> (key:string) (env:IDictionary<string, obj>) = 
             let res, v = env.TryGetValue key
